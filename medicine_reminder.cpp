@@ -1,171 +1,208 @@
 #include <iostream>
-#include <vector>
 #include <string>
-#include <fstream>
-#include <cstdlib> // For system()
-
+#include <vector>
+#include <thread>
+#include <chrono>
 using namespace std;
 
-// Struct for Medicine
+// ========================== Structures ==========================
+struct UserInfo {
+    string name;
+    int age;
+    string gender;
+    string phoneNumber;
+};
+
 struct Medicine {
     string name;
-    int amount;
+};
+
+struct MedicineSchedule {
+    string medicineName;
     string time;
 };
 
-// User Info
-struct User {
-    string name;
-    int age;
-};
+// ========================== Functions ==========================
 
-// Globals
-vector<Medicine> medicineLibrary = {
-    {"Nafa_A", 0, ""},
-    {"Nafa_B", 0, ""},
-    {"Nafa_C", 0, ""},
-    {"Nafa_D", 0, ""}
-};
-User currentUser;
+// Register user information
+UserInfo registerUser() {
+    UserInfo user;
+    cout << "===== User Registration =====\n";
 
-// Function Prototypes
-void userRegistration();
-void viewMedicineLibrary();
-void addMedicine();
-int searchMedicine(string name);
-void setMedicineSchedule();
-void triggerNotification(const Medicine &med);
-void recordHistory(const Medicine &med);
-void saveMedicineData();
-void loadMedicineData();
+    cout << "Enter your name: ";
+    getline(cin, user.name);
 
-int main() {
-    loadMedicineData();
-    cout << "Medicine Reminder & Assistant System\n";
-    userRegistration();
+    cout << "Enter your age: ";
+    cin >> user.age;
+    cin.ignore(); // clear buffer
 
-    char choice;
+    cout << "Enter your gender (Male/Female/Other): ";
+    getline(cin, user.gender);
+
+    cout << "Enter your phone number: ";
+    getline(cin, user.phoneNumber);
+
+    cout << "\nUser Info Registered Successfully!\n";
+    cout << "Name: " << user.name << endl;
+    cout << "Age: " << user.age << endl;
+    cout << "Gender: " << user.gender << endl;
+    cout << "Phone: " << user.phoneNumber << endl;
+
+    return user;
+}
+
+// Load default medicines
+vector<Medicine> loadMedicineLibrary() {
+    vector<Medicine> library;
+    library.push_back({"Nafa A"});
+    library.push_back({"Nafa B"});
+    library.push_back({"Nafa C"});
+    library.push_back({"Nafa D"});
+    return library;
+}
+
+// View medicines
+void viewMedicines(const vector<Medicine>& library) {
+    cout << "\n===== Medicine Library =====\n";
+    if (library.empty()) {
+        cout << "No medicines in the library.\n";
+        return;
+    }
+    for (int i = 0; i < library.size(); i++) {
+        cout << i << ". " << library[i].name << endl;
+    }
+}
+
+// Add medicine
+void addMedicine(vector<Medicine>& library) {
+    string medName;
+    cout << "Enter new medicine name: ";
+    getline(cin, medName);
+    library.push_back({medName});
+    cout << medName << " added to the library.\n";
+}
+
+// Search medicine
+void searchMedicine(const vector<Medicine>& library) {
+    string searchName;
+    cout << "Enter medicine name to search: ";
+    getline(cin, searchName);
+
+    bool found = false;
+    for (auto& med : library) {
+        if (med.name == searchName) {
+            cout << searchName << " found in the library.\n";
+            found = true;
+            break;
+        }
+    }
+    if (!found) cout << searchName << " not found.\n";
+}
+
+// Delete medicine
+void deleteMedicine(vector<Medicine>& library) {
+    string delName;
+    cout << "Enter medicine name to delete: ";
+    getline(cin, delName);
+
+    for (auto it = library.begin(); it != library.end(); ++it) {
+        if (it->name == delName) {
+            cout << delName << " deleted from library.\n";
+            library.erase(it);
+            return;
+        }
+    }
+    cout << delName << " not found.\n";
+}
+
+// Medicine library menu
+void medicineLibraryMenu(vector<Medicine>& library) {
+    int choice;
     do {
-        cout << "\n1. View Medicine Library\n2. Add New Medicine\n3. Search Medicine\n4. Set Medicine Schedule\n5. Save Data & Exit\nEnter choice: ";
+        cout << "\n===== Medicine Library Menu =====\n";
+        cout << "1. View Medicines\n";
+        cout << "2. Add Medicine\n";
+        cout << "3. Search Medicine\n";
+        cout << "4. Delete Medicine\n";
+        cout << "0. Exit Library Menu\n";
+        cout << "Enter choice: ";
         cin >> choice;
+        cin.ignore();
 
         switch (choice) {
-            case '1':
-                viewMedicineLibrary();
-                break;
-            case '2':
-                addMedicine();
-                break;
-            case '3': {
-                cout << "Enter medicine name to search: ";
-                string name;
-                cin >> name;
-                int idx = searchMedicine(name);
-                if (idx != -1) {
-                    cout << "Medicine found: " << medicineLibrary[idx].name << endl;
-                } else {
-                    cout << "Medicine not found.\n";
-                }
-                break;
-            }
-            case '4':
-                setMedicineSchedule();
-                break;
-            case '5':
-                saveMedicineData();
-                cout << "Data saved. Exiting.\n";
-                break;
-            default:
-                cout << "Invalid choice.\n";
+            case 1: viewMedicines(library); break;
+            case 2: addMedicine(library); break;
+            case 3: searchMedicine(library); break;
+            case 4: deleteMedicine(library); break;
+            case 0: cout << "Exiting Library Menu...\n"; break;
+            default: cout << "Invalid choice!\n";
         }
-    } while (choice != '5');
+    } while (choice != 0);
+}
 
+// Set medicine schedule
+vector<MedicineSchedule> setMedicineSchedule(const vector<Medicine>& library) {
+    vector<MedicineSchedule> schedule;
+    int count;
+    cout << "\nHow many medicines do you want to schedule? ";
+    cin >> count;
+    cin.ignore();
+
+    for (int i = 0; i < count; i++) {
+        MedicineSchedule ms;
+        cout << "\nSelect medicine index (0-" << library.size() - 1 << "): ";
+        int idx;
+        cin >> idx;
+        cin.ignore();
+
+        if (idx >= 0 && idx < library.size()) {
+            ms.medicineName = library[idx].name;
+        } else {
+            cout << "Invalid index, defaulting to Nafa A.\n";
+            ms.medicineName = library[0].name;
+        }
+
+        cout << "Enter time for " << ms.medicineName << " (HH:MM, 24hr format): ";
+        getline(cin, ms.time);
+
+        schedule.push_back(ms);
+    }
+
+    return schedule;
+}
+
+// Trigger notification (simulate with sound/text)
+void triggerNotification(const vector<MedicineSchedule>& schedule) {
+    cout << "\n===== Triggering Notifications =====\n";
+    for (auto& ms : schedule) {
+        cout << "Reminder: Take " << ms.medicineName
+             << " at " << ms.time << " ⏰" << endl;
+
+        // Simulated sound
+        cout << "[Playing notification sound...]\n";
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+}
+
+// ========================== Main ==========================
+int main() {
+    cout << "===== Medicine Management System =====\n";
+
+    // Register User
+    UserInfo user = registerUser();
+
+    // Load Medicine Library
+    vector<Medicine> medicineLibrary = loadMedicineLibrary();
+
+    // Library Menu
+    medicineLibraryMenu(medicineLibrary);
+
+    // Set Schedule
+    vector<MedicineSchedule> schedule = setMedicineSchedule(medicineLibrary);
+
+    // Trigger Notifications
+    triggerNotification(schedule);
+
+    cout << "\n===== Program Ended =====\n";
     return 0;
-}
-
-void userRegistration() {
-    cout << "Enter your name: ";
-    cin >> currentUser.name;
-    cout << "Enter your age: ";
-    cin >> currentUser.age;
-}
-
-void viewMedicineLibrary() {
-    cout << "=== Medicine Library ===\n";
-    for (const auto& med : medicineLibrary) {
-        cout << "Name: " << med.name << ", Amount: " << med.amount << ", Time: " << med.time << endl;
-    }
-}
-
-void addMedicine() {
-    Medicine med;
-    cout << "Enter medicine name: ";
-    cin >> med.name;
-    cout << "Enter amount: ";
-    cin >> med.amount;
-    cout << "Enter taking time (e.g. 8AM): ";
-    cin >> med.time;
-    medicineLibrary.push_back(med);
-}
-
-int searchMedicine(string name) {
-    for (size_t i = 0; i < medicineLibrary.size(); i++) {
-        if (medicineLibrary[i].name == name)
-            return i;
-    }
-    return -1;
-}
-
-void setMedicineSchedule() {
-    string name;
-    cout << "Enter medicine name to schedule: ";
-    cin >> name;
-    int idx = searchMedicine(name);
-    if (idx != -1) {
-        cout << "Set time for taking " << medicineLibrary[idx].name << " (24-hour format, e.g., 14:00): ";
-        cin >> medicineLibrary[idx].time;
-        cout << "Time set to " << medicineLibrary[idx].time << " for " << medicineLibrary[idx].name << endl;
-        triggerNotification(medicineLibrary[idx]);
-    } else {
-        cout << "Medicine not found.\n";
-    }
-}
-
-void triggerNotification(const Medicine &med) {
-    cout << "\n--- Reminder ---\n";
-    cout << "Time to take: " << med.name << " Amount: " << med.amount << " at " << med.time << endl;
-
-    // Play sound notification
-    system("start ringtone-126505.mp3"); // Windows-specific command
-
-    string confirm;
-    cout << "Have you taken the medicine? (yes/no): ";
-    cin >> confirm;
-
-    if (confirm == "yes") {
-        recordHistory(med);
-    } else {
-        cout << "Reminder will repeat later.\n";
-    }
-}
-
-void recordHistory(const Medicine &med) {
-    cout << "Recording that you took " << med.name << endl;
-}
-
-void saveMedicineData() {
-    ofstream file("medicines.txt");
-    for (const auto& med : medicineLibrary) {
-        file << med.name << " " << med.amount << " " << med.time << endl;
-    }
-    file.close();
-}
-
-void loadMedicineData() {
-    ifstream file("medicines.txt");
-    Medicine med;
-    while (file >> med.name >> med.amount >> med.time) {
-        medicineLibrary.push_back(med);
-    }
-    file.close();
 }
